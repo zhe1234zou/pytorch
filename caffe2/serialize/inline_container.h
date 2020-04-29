@@ -99,6 +99,10 @@ constexpr uint64_t kMaxSupportedFileFormatVersion = 0x3L;
 // 3. Added type tags to pickle serialization of container types
 constexpr uint64_t kProducedFileFormatVersion = 0x3L;
 
+// the version we write when the archive contains bytecode.
+// Possibly _higher_ than kProducedFileFormatVersion.
+constexpr uint64_t kProducedBytecodeVersion = 0x3L;
+
 // Writer-specific constants
 constexpr uint64_t kFieldAlignment = 64;
 

@@ -85,7 +85,20 @@ void print_unsupported_ops_and_throw(
 void parseMethods(
     const std::vector<IValue>& vals,
     mobile::CompilationUnit& mcu) {
-  for (const auto& element : vals) {
+  TORCH_CHECK(
+      vals.size() > 0,
+      "Bytecode has no elements. At least one element of version number is required.");
+  auto model_version = vals[0].toInt();
+  TORCH_CHECK(
+      model_version == caffe2::serialize::kProducedBytecodeVersion,
+      "Lite Interpreter verson number does not match. ",
+      "The code version is ",
+      caffe2::serialize::kProducedBytecodeVersion,
+      " but the model version is ",
+      model_version);
+
+  for (size_t i = 1; i < vals.size(); ++i) {
+    const auto& element = vals[i];
     const auto& m_tuple = element.toTuple()->elements();
     const std::string& function_name = m_tuple[0].toStringRef();
     IValue table = m_tuple[1];
@@ -133,7 +146,6 @@ void parseMethods(
             op_item[0].toString()->string(), op_item[1].toString()->string()));
       }
     }
-
     if (!unsupported_op_names.empty()) {
       print_unsupported_ops_and_throw(unsupported_op_names);
     };
