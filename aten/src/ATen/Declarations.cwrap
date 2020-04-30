@@ -544,8 +544,7 @@
       arguments:
         - arg: THTensor* result
           output: True
-        - arg: THTensor* self
-          broadcast: other fallback
+        - THTensor* self
         - THTensor* other
 ]]
 [[
@@ -563,8 +562,7 @@
     - cname: cfmod
       arguments:
         - THTensor* self
-        - arg: THTensor* self
-          broadcast: other inplace fallback
+        - THTensor* self
         - THTensor* other
 ]]
 [[
