@@ -1882,13 +1882,37 @@ return_type name( \
       input, prepare_hx_fn(hx), params); \
 }
 
+#define DEFINE_QUANTIZED_RNN_CELL_DYNAMIC(name, hx_type, cell_type, return_type, prepare_hx_fn) \
+return_type name( \
+    const Tensor& input, \
+    hx_type hx, \
+    const Tensor& w_ih, \
+    const Tensor& w_hh, \
+    const Tensor& b_ih, \
+    const Tensor& b_hh ) { \
+  QuantizedCellParamsDynamic params( \
+      w_ih, \
+      w_hh, \
+      b_ih, \
+      b_hh); \
+  return cell_type{}( \
+      input, prepare_hx_fn(hx), params); \
+}
+
 // Quantized LSTM cell
 using quantized_lstm_cell_type = LSTMCell<QuantizedCellParams>;
 using quantized_lstm_return_type = std::tuple<Tensor, Tensor>;
 std::tuple<Tensor, Tensor> prepare_quantized_lstm_hx(TensorList hx) {
+  TORCH_CHECK(hx.size() == 2, "lstm_cell expects two hidden states");
   return std::make_tuple(hx[0], hx[1]);
 }
+
+// Quantized LSTM cell
+using quantized_lstm_cell_dynamic_type = LSTMCell<QuantizedCellParamsDynamic>;
+
 DEFINE_QUANTIZED_RNN_CELL(quantized_lstm_cell, TensorList, quantized_lstm_cell_type, quantized_lstm_return_type, prepare_quantized_lstm_hx);
+
+DEFINE_QUANTIZED_RNN_CELL_DYNAMIC(quantized_lstm_cell_dynamic, TensorList, quantized_lstm_cell_dynamic_type, quantized_lstm_return_type, prepare_quantized_lstm_hx);
 
 // Helpers for simpler cells
 using simple_hx_type = const Tensor&;
@@ -1898,15 +1922,23 @@ simple_hx_type prepare_quantized_hx(simple_hx_type hx) {
 
 // Quantized GRU cell
 using quantized_gru_cell_type = GRUCell<QuantizedCellParams>;
+using quantized_gru_cell_dynamic_type = GRUCell<QuantizedCellParamsDynamic>;
+
 DEFINE_QUANTIZED_RNN_CELL(quantized_gru_cell, simple_hx_type, quantized_gru_cell_type, Tensor, prepare_quantized_hx);
+
+DEFINE_QUANTIZED_RNN_CELL_DYNAMIC(quantized_gru_cell_dynamic, simple_hx_type, quantized_gru_cell_dynamic_type, Tensor, prepare_quantized_hx);
 
 // Quantized RNN w/ ReLU cell
 using quantized_rnn_relu_cell_type = SimpleCell<relu_f, QuantizedCellParams>;
 DEFINE_QUANTIZED_RNN_CELL(quantized_rnn_relu_cell, simple_hx_type, quantized_rnn_relu_cell_type, Tensor, prepare_quantized_hx);
+using quantized_rnn_relu_cell_dynamic_type = SimpleCell<relu_f, QuantizedCellParamsDynamic>;
+DEFINE_QUANTIZED_RNN_CELL_DYNAMIC(quantized_rnn_relu_cell_dynamic, simple_hx_type, quantized_rnn_relu_cell_dynamic_type, Tensor, prepare_quantized_hx);
 
 // Quantized RNN w/ tanh cell
 using quantized_rnn_tanh_cell_type = SimpleCell<tanh_f, QuantizedCellParams>;
 DEFINE_QUANTIZED_RNN_CELL(quantized_rnn_tanh_cell, simple_hx_type, quantized_rnn_tanh_cell_type, Tensor, prepare_quantized_hx);
+using quantized_rnn_tanh_cell_dynamic_type = SimpleCell<tanh_f, QuantizedCellParamsDynamic>;
+DEFINE_QUANTIZED_RNN_CELL_DYNAMIC(quantized_rnn_tanh_cell_dynamic, simple_hx_type, quantized_rnn_tanh_cell_dynamic_type, Tensor, prepare_quantized_hx);
 
 namespace {
 
