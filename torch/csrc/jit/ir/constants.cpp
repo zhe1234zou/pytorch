@@ -70,7 +70,7 @@ c10::optional<Value*> tryInsertConstant(
   Node* n = g.create(prim::Constant);
   if (val.isTensor()) {
     at::Tensor ref = val.toTensor();
-    if (!ref.defined()) {
+    if (!ref.defined() || !ref.has_storage()) {
       n->destroy();
       return g.insertNode(g.createNone())->output();
     }
