@@ -227,6 +227,15 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
     TORCH_INTERNAL_ASSERT(grad.device() == bucket_view.device());
     TORCH_INTERNAL_ASSERT(grad.numel() == bucket_view.numel());
     bucket_view.copy_(grad.view({-1}), /* non_blocking */ true);
+    // auto currentStream = at::cuda::getCurrentCUDAStream();
+    // auto defaultStream = at::cuda::getDefaultCUDAStream();
+    // // The other stream will block.
+    // if (currentStream != defaultStream) {
+    //   at::cuda::CUDAEvent event;
+    //   // Note that this event record has to be after the copy_ call.
+    //   event.record(currentStream);
+    //   replica.events.push_back(std::move(event));
+    // }
   } else {
     bucket_view.zero_();
   }
@@ -355,6 +364,19 @@ void Reducer::mark_variable_ready(VariableIndex index) {
   if (--replica.pending == 0) {
     // Prescale bucket contents to turn the global sum into the global average.
     replica.contents.div_(process_group_->getSize());
+
+    auto currentStream =
+        at::cuda::getCurrentCUDAStream(replica.contents.device().index());
+    auto defaultStream =
+        at::cuda::getDefaultCUDAStream(replica.contents.device().index());
+    // The other stream will block.
+    // if (currentStream != defaultStream) {
+    //   LOG(INFO) << "Detected different cuda streams";
+    //   at::cuda::CUDAEvent event;
+    //   // Note that this event record has to be after the copy_ call.
+    //   event.record(currentStream);
+    //   replica.events.push_back(std::move(event));
+    // }
     // Kick off reduction if all replicas for this bucket are ready.
     if (--bucket.pending == 0) {
       mark_bucket_ready(bucket_index.bucket_index);
@@ -672,6 +694,11 @@ void Reducer::finalize_bucket_dense(Bucket& bucket) {
           grad = at::empty(bucket_view.sizes(), bucket_view.options());
         }
         grad.copy_(bucket_view);
+        // Hack
+        auto currentStream = at::cuda::getCurrentCUDAStream();
+        at::cuda::CUDAEvent event;
+        event.record(currentStream);
+        event.synchronize();
       }
     }
   }
