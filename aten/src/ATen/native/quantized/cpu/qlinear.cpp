@@ -268,6 +268,11 @@ class QLinearInt8 final {
           (uint8_t*)qnnp_w_data,
           (int32_t*)bias.data_ptr<c10::qint32>());
       packB = pack_ptr.w.get();
+      if (at::globalContext().releaseWeightsWhenPrepacking()) {
+        // On mobile, we release the original weight by resetting the intrusive_ptr.
+        // Calling unpack after this will throw an assertion.
+        pack_ptr.orig_weight.reset();
+      }
     }
 
     size_t rows_input = 1;
