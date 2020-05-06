@@ -436,6 +436,38 @@ void TensorPipeAgent::addGilWaitTime(
   timeSeriesMetrics_[kGilAverageWaitTime]->addData(gilWaitTime.count());
 }
 
+TensorPipeAgent::NetworkDataDict TensorPipeAgent::getNetworkData() {
+  std::lock_guard<std::mutex> lock(networkDataMutex_);
+  return networkData_;
+}
+
+NetworkSourceInfo TensorPipeAgent::getNetworkSourceInfo() {
+  NetworkSourceInfo info = {
+      RpcAgent::getWorkerInfo().id_,
+      addressStore_->get(RpcAgent::getWorkerInfo().name_)};
+
+  return info;
+}
+
+void TensorPipeAgent::trackNetworkData(
+    uint64_t requestSize,
+    uint64_t responseSize,
+    worker_id_t destWorkerId) {
+  std::lock_guard<std::mutex> lock(networkDataMutex_);
+  networkData_[destWorkerId].numCalls++;
+  networkData_[destWorkerId].totalSentBytes += requestSize;
+  networkData_[destWorkerId].totalRecvBytes += responseSize;
+}
+
+void TensorPipeAgent::trackNetworkError(
+    uint64_t requestSize,
+    worker_id_t destWorkerId) {
+  std::lock_guard<std::mutex> lock(networkDataMutex_);
+  networkData_[destWorkerId].numCalls++;
+  networkData_[destWorkerId].totalSentBytes += requestSize;
+  networkData_[destWorkerId].totalErrors++;
+}
+
 } // namespace rpc
 } // namespace distributed
 } // namespace torch
