@@ -551,6 +551,9 @@ class QConvInt8 final {
 
     auto input_scale = act_nhwc.q_scale();
 
+    const bool is_per_channel =
+      pack_data.orig_weight.qscheme() == at::kPerChannelAffine;
+
     // Re-quantizing the bias based on input scale and weight scale.
     if (!pack_data.input_scale.has_value() ||
         pack_data.input_scale.value() != input_scale) {
@@ -603,7 +606,8 @@ class QConvInt8 final {
           pack_data.requantization_scale.data(),
           output_min,
           output_max,
-          /*transpose=*/false);
+          /*transpose=*/false,
+          is_per_channel);
 
       // Update the input scale to not pack again.
       pack_data.input_scale = input_scale;
@@ -648,7 +652,8 @@ class QConvInt8 final {
         pack_data.requantization_scale.data(),
         output_min,
         output_max,
-        /*transpose=*/false);
+        /*transpose=*/false,
+        is_per_channel);
 
     const pytorch_qnnp_status run_status = qnnpack::qnnpackConv(
         conv_p,
